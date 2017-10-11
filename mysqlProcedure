@@ -1,0 +1,37 @@
+DELIMITER $$ -- 重新定义结束符（默认情况下，delimiter是分号;。在命令行客户端中，如果有一行命令以分号结束，回车后，mysql将会执行该命令）
+drop procedure if EXISTS update_specify_paychannel;-- 删除已存在存储过程
+create PROCEDURE update_specify_paychannel() -- 创建存储过程（可以三种入参 in a int / out b varchar(5) inout c long）
+BEGIN -- 存储过程开始
+  DECLARE i int DEFAULT 0; -- 存储过程范围有效的局部变量
+  DECLARE total int;
+  DECLARE temp_table VARCHAR(50);
+  DECLARE all_ids VARCHAR(5000) DEFAULT '';
+  -- 声明并赋值游标
+  DECLARE target_tables CURSOR FOR SELECT t.TABLE_NAME FROM information_schema.TABLES  t WHERE t.TABLE_NAME LIKE 't_template_api_paychannel_%' and t.TABLE_ROWS>0;
+  -- into 赋值给变量
+  select count(*) into total from information_schema.TABLES  t WHERE t.TABLE_NAME LIKE 't_template_api_paychannel_%' and t.TABLE_ROWS>0;	  
+  OPEN target_tables; -- 打开游标
+		 WHILE i< total DO --while 循环 DO end while
+			 FETCH target_tables INTO temp_table; -- 当前游标位置赋值给变量
+         -- @a 为客户端全剧变量，当前客户端有效
+				 set @PAY_CHANNEL_ITEMID = '';
+         set @query_sql = CONCAT('select IFNULL(t.ID ,\'\') as ID into @PAY_CHANNEL_ITEMID from t_template_pt_paychannel_conf  t where t.PAYCHANNEL_CODE in (select DISTINCT m.CURT_PAY_CHANNEL from ',temp_table,' p,t_template_api_merchant m where p.MERCODE = m.MER_CODE and p.PAY_CHANNEL_ITEMID is NULL) ORDER BY t.BUS_TYPE asc limit 1');
+		     -- 全局变量作为参数执行sql  必须如下三步
+         PREPARE stmt_query from @query_sql; -- 1、准备sql
+         EXECUTE stmt_query; --2、预处理
+         DEALLOCATE PREPARE stmt_query; -- 3、当前执行
+				 if(LENGTH(@PAY_CHANNEL_ITEMID)>0 ) then -- if 语句 then end if
+						SET all_ids = CONCAT(all_ids,';',temp_table,':',@PAY_CHANNEL_ITEMID);
+            set @update_sql = CONCAT('update ',temp_table,' set PAY_CHANNEL_ITEMID=\'',@PAY_CHANNEL_ITEMID,'\' where PAY_CHANNEL_ITEMID is null and ',@PAY_CHANNEL_ITEMID,' is not null');
+            PREPARE stmt_update from @update_sql;
+            EXECUTE stmt_update;
+            DEALLOCATE PREPARE stmt_update;   
+         end IF;     
+				 set i=i+1; -- 操作标量
+     end WHILE; -- 结束循环
+	CLOSE target_tables; -- 关闭游标
+  SELECT all_ids; -- 查询语句 存储过程执行完 展示结果
+END $$ --存储过程结束
+DELIMITER ; -- 恢复默认的结束标识符
+call update_specify_paychannel(); -- 调用存储过程
+drop procedure if EXISTS update_specify_paychannel; --删除存储过程
