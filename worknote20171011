@@ -1,0 +1,29 @@
+
+1、mysql中update语句注意要点:
+demo:
+age = 27;work=2;id=1
+update tableA set age=age+1,work=age-25 where id=1;(result:age=28,work=3)
+update tableA set work=age-25,age=age+1 where id=1;(result:age=28,work=2)
+结论：mysql中，update的字段变更的值，可以被后面引用到（必须是先变更，再被引用，否则是旧值）
+2、判断是否存在指定表
+SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_NAME=?
+3、查询表字段
+SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME=?
+4、复制表
+create table b1 like b;
+5、复制表数据
+insert into b1 select * from b where id in(1);
+6、@Transactional
+@Transactional注解只有在抛出RuntimeExecption（及其子类）这些unchecked异常（IllegalArgumentException,NullPointerException,IllegalStateException）时会回滚
+抛出checked异常时，事务会提交（IoExecption）
+7、jdbctemplate与@Transactional
+方法中复制表的SQL存在时，抛出unchecked异常，事务未回滚
+需要将操作表的SQL单独处理，不能在同一个事务中
+8、判断是否存在的insert语句
+9、传递URL到前端作为参数时，需要进行URLencode处理
+String encodeUrl = URLEncoder.encode(url,"utf-8")
+确保从前端再次传递回来时，url参数完整被解析不会被截取（=?&等符号需要解析）
+String decodeUrl = URLDecoder.decode(url,"utf-8");
+10、mysql EXISTS or NOT EXISTS 条件语句
+存在条件为true时，sql才会被执行
+SELECT column1 FROM t1 WHERE EXISTS (SELECT * FROM t2);
