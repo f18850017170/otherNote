@@ -27,3 +27,7 @@ String decodeUrl = URLDecoder.decode(url,"utf-8");
 10、mysql EXISTS or NOT EXISTS 条件语句
 存在条件为true时，sql才会被执行
 SELECT column1 FROM t1 WHERE EXISTS (SELECT * FROM t2);
+
+11、查看mysql 版本
+使用mysql函数
+select VERSION();
