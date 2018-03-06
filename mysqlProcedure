@@ -1,3 +1,5 @@
+
+-- 例子1
 DELIMITER $$ -- 重新定义结束符（默认情况下，delimiter是分号;。在命令行客户端中，如果有一行命令以分号结束，回车后，mysql将会执行该命令）
 drop procedure if EXISTS update_specify_paychannel;-- 删除已存在存储过程
 create PROCEDURE update_specify_paychannel() -- 创建存储过程（可以三种入参 in a int / out b varchar(5) inout c long）
@@ -35,3 +37,35 @@ END $$ --存储过程结束
 DELIMITER ; -- 恢复默认的结束标识符
 call update_specify_paychannel(); -- 调用存储过程
 drop procedure if EXISTS update_specify_paychannel; --删除存储过程
+
+
+
+-- 例子2
+DELIMITER $$ -- 重新定义结束符（默认情况下，delimiter是分号;。在命令行客户端中，如果有一行命令以分号结束，回车后，mysql将会执行该命令）
+drop procedure if EXISTS alter_table_api_order;-- 删除已存在存储过程
+create PROCEDURE alter_table_api_order() -- 创建存储过程（可以三种入参 in a int / out b varchar(5) inout c long）
+BEGIN -- 存储过程开始
+  DECLARE i int DEFAULT 0; -- 存储过程范围有效的局部变量
+  DECLARE total int;
+  DECLARE temp_table VARCHAR(50);
+ -- 声明并赋值游标
+  DECLARE target_tables CURSOR FOR SELECT t.TABLE_NAME FROM information_schema.TABLES  t WHERE t.TABLE_NAME LIKE 'api_order_2%';
+  -- into 赋值给变量
+  select count(*) into total from information_schema.TABLES  t WHERE t.TABLE_NAME LIKE 'api_order_2%';
+
+OPEN target_tables; -- 打开游标
+		 WHILE i< total DO -- while 循环 DO end while
+			 FETCH target_tables INTO temp_table; -- 当前游标位置赋值给变量
+         -- @a 为客户端全剧变量，当前客户端有效
+         set @query_sql = CONCAT('ALTER TABLE ',temp_table,' ADD COLUMN `DRIVER_ID`  varchar(50) NULL COMMENT \'终端号，设备信息\' AFTER `PAY_CHANNEL_ITEMID`');
+		     -- 全局变量作为参数执行sql  必须如下三步
+         PREPARE stmt_query from @query_sql; -- 1、准备sql
+         EXECUTE stmt_query; -- 2、预处理
+         DEALLOCATE PREPARE stmt_query; -- 3、当前执行
+				 set i=i+1; -- 操作标量
+     end WHILE; -- 结束循环
+	CLOSE target_tables; -- 关闭游标
+END $$ -- 存储过程结束
+DELIMITER ; -- 恢复默认的结束标识符
+call alter_table_api_order(); -- 调用存储过程
+drop procedure if EXISTS alter_table_api_order; -- 删除存储过程
